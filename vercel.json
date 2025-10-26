@@ -20,10 +20,5 @@
       "status": 404,
       "dest": "/public/404.html"
     }
-  ],
-  "functions": {
-    "api/index.js": {
-      "maxDuration": 30
-    }
-  }
+  ]
 }
