@@ -23,15 +23,15 @@ const groq = new Groq({ apiKey: GROQ_API_KEY });
 
 app.use(express.json());
 
-// Serve static files from /public
+// Serve static files from /public (for non-API routes)
 app.use(express.static(path.join(__dirname, '../public')));
 
-// Health check endpoint
+// Health check endpoint (accessible at /api/health)
 app.get('/health', (req, res) => {
     res.json({ status: 'Server is running', port, apiKeySet: !!GROQ_API_KEY });
 });
 
-// Chat API endpoint
+// Chat API endpoint (now at /api/chat to match Vercel auto-routing)
 app.post('/chat', async (req, res) => {
     const { message } = req.body;
 
@@ -61,15 +61,19 @@ app.post('/chat', async (req, res) => {
     }
 });
 
-// Serve index.html for root path (fallback for static serving)
+// Fallback for root path (serves index.html)
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, '../public/index.html'));
 });
 
-// Catch-all for other routes (404 as JSON)
+// Catch-all for other routes (return JSON 404 for API-like paths)
 app.use((req, res) => {
-    res.status(404).json({ error: 'Endpoint not found' });
+    if (req.path.startsWith('/api/')) {
+        res.status(404).json({ error: 'API endpoint not found' });
+    } else {
+        res.status(404).sendFile(path.join(__dirname, '../public/index.html')); // SPA fallback
+    }
 });
 
-// Serverless export: Vercel invokes this as the handler
+// Serverless export: Vercel invokes this as the handler for /api/*
 export default app;
