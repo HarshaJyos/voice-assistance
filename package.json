@@ -1,11 +1,12 @@
 {
   "name": "voice-assistant",
   "version": "1.0.0",
-  "description": "Voice assistant website using Groq AI",
-  "main": "server.js",
   "type": "module",
+  "description": "Voice assistant website using Groq AI",
+  "main": "api/index.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node api/index.js",
+    "build": "echo 'No build step needed'"
   },
   "dependencies": {
     "dotenv": "^17.2.3",

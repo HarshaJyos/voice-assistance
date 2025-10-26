@@ -6,30 +6,32 @@ import { fileURLToPath } from 'url';
 
 dotenv.config();
 
-const app = express();
-const port = process.env.PORT || 3000;
-
-// Get the directory name for ES modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+const app = express();
+const port = process.env.PORT || 3000;
 
 // Initialize Groq with API key
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
 if (!GROQ_API_KEY) {
     console.error('Error: GROQ_API_KEY is not set in environment variables.');
-    process.exit(1);
+    throw new Error('Missing GROQ_API_KEY');
 }
 
 const groq = new Groq({ apiKey: GROQ_API_KEY });
 
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public'))); // Serve static files from 'public' folder
 
-// Health check endpoint for debugging
+// Serve static files from /public
+app.use(express.static(path.join(__dirname, '../public')));
+
+// Health check endpoint
 app.get('/health', (req, res) => {
     res.json({ status: 'Server is running', port, apiKeySet: !!GROQ_API_KEY });
 });
 
+// Chat API endpoint
 app.post('/chat', async (req, res) => {
     const { message } = req.body;
 
@@ -54,16 +56,20 @@ app.post('/chat', async (req, res) => {
         const aiResponse = completion.choices[0].message.content;
         res.json({ response: aiResponse });
     } catch (error) {
-        console.error('Groq API Error:', error.message, error.stack);
+        console.error('Groq API Error:', error.message);
         res.status(500).json({ error: `Failed to get response from Groq: ${error.message}` });
     }
 });
 
-// Catch-all for 404 errors
+// Serve index.html for root path (fallback for static serving)
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, '../public/index.html'));
+});
+
+// Catch-all for other routes (404 as JSON)
 app.use((req, res) => {
     res.status(404).json({ error: 'Endpoint not found' });
 });
 
-app.listen(port, () => {
-    console.log(`Server running at http://localhost:${port}`);
-});
+// Serverless export: Vercel invokes this as the handler
+export default app;
