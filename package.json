@@ -1,0 +1,15 @@
+{
+  "name": "voice-assistant",
+  "version": "1.0.0",
+  "description": "Voice assistant website using Groq AI",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "dotenv": "^17.2.3",
+    "express": "^4.18.2",
+    "groq-sdk": "^0.34.0"
+  }
+}

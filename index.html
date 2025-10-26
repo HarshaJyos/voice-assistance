@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grok Voice Assistant</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styles for chat bubbles and scrollbar */
+        .chat-container {
+            max-height: 400px;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: #6b7280 #e5e7eb;
+        }
+        .chat-container::-webkit-scrollbar {
+            width: 8px;
+        }
+        .chat-container::-webkit-scrollbar-track {
+            background: #e5e7eb;
+            border-radius: 4px;
+        }
+        .chat-container::-webkit-scrollbar-thumb {
+            background: #6b7280;
+            border-radius: 4px;
+        }
+        .chat-container::-webkit-scrollbar-thumb:hover {
+            background: #4b5563;
+        }
+        .user-message, .ai-message {
+            max-width: 80%;
+            margin-bottom: 1rem;
+            padding: 0.75rem 1rem;
+            border-radius: 0.75rem;
+            animation: slideIn 0.3s ease-in-out;
+        }
+        .user-message {
+            background-color: #3b82f6;
+            color: white;
+            margin-left: auto;
+        }
+        .ai-message {
+            background-color: #e5e7eb;
+            color: #1f2937;
+            margin-right: auto;
+        }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col items-center justify-center p-4">
+    <div class="w-full max-w-2xl bg-white rounded-lg shadow-lg p-6">
+        <h1 class="text-3xl font-bold text-gray-800 mb-6 text-center">Voice Assistant</h1>
+        <button id="startBtn" class="w-full bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-semibold py-3 px-6 rounded-lg hover:from-blue-600 hover:to-indigo-700 transition duration-300">Start Listening</button>
+        <p id="status" class="text-gray-500 italic mt-4 text-center">Press the button to start speaking...</p>
+        <div id="chatHistory" class="chat-container mt-6 p-4 bg-gray-50 rounded-lg"></div>
+    </div>
+
+    <script type="module">
+        const startBtn = document.getElementById('startBtn');
+        const status = document.getElementById('status');
+        const chatHistory = document.getElementById('chatHistory');
+
+        // Array to store chat history
+        let messages = [];
+
+        // Function to add a message to the chat history (recent at top)
+        function addMessageToHistory(role, content) {
+            messages.unshift({ role, content }); // Add to start of array
+            renderChatHistory();
+        }
+
+        // Function to render chat history
+        function renderChatHistory() {
+            chatHistory.innerHTML = ''; // Clear existing content
+            messages.forEach(msg => {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = msg.role === 'user' ? 'user-message' : 'ai-message';
+                messageDiv.textContent = `${msg.role === 'user' ? 'You' : 'AI'}: ${msg.content}`;
+                chatHistory.prepend(messageDiv); // Prepend to keep recent at top
+            });
+            // Scroll to top to show latest message
+            chatHistory.scrollTop = 0;
+        }
+
+        let recognition;
+        if ('webkitSpeechRecognition' in window) {
+            recognition = new webkitSpeechRecognition();
+        } else if ('SpeechRecognition' in window) {
+            recognition = new SpeechRecognition();
+        } else {
+            alert('Speech recognition not supported in this browser.');
+        }
+
+        if (recognition) {
+            recognition.continuous = false;
+            recognition.interimResults = false;
+            recognition.lang = 'en-US';
+
+            recognition.onstart = () => {
+                status.textContent = 'Listening...';
+                startBtn.classList.add('bg-gray-400', 'cursor-not-allowed');
+                startBtn.disabled = true;
+            };
+
+            recognition.onend = () => {
+                status.textContent = 'Processing...';
+                startBtn.classList.remove('bg-gray-400', 'cursor-not-allowed');
+                startBtn.disabled = false;
+            };
+
+            recognition.onresult = async (event) => {
+                const transcript = event.results[0][0].transcript;
+                status.textContent = `You said: ${transcript}`;
+                addMessageToHistory('user', transcript);
+
+                try {
+                    const res = await fetch('/chat', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ message: transcript })
+                    });
+                    const data = await res.json();
+                    if (data.error) throw new Error(data.error);
+                    const aiResponse = data.response;
+
+                    addMessageToHistory('ai', aiResponse);
+
+                    const utterance = new SpeechSynthesisUtterance(aiResponse);
+                    speechSynthesis.speak(utterance);
+
+                    status.textContent = 'Press the button to start speaking...';
+                } catch (error) {
+                    console.error('Error:', error);
+                    status.textContent = 'Error processing request.';
+                    addMessageToHistory('ai', 'Sorry, something went wrong. Try again.');
+                }
+            };
+
+            recognition.onerror = (event) => {
+                console.error('Error:', event.error);
+                status.textContent = 'Error occurred in recognition.';
+                startBtn.classList.remove('bg-gray-400', 'cursor-not-allowed');
+                startBtn.disabled = false;
+            };
+        }
+
+        startBtn.addEventListener('click', () => {
+            if (recognition && !startBtn.disabled) recognition.start();
+        });
+    </script>
+</body>
+</html>
