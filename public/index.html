@@ -7,7 +7,6 @@
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* Custom styles for chat bubbles and scrollbar */
         .chat-container {
             max-height: 400px;
             overflow-y: auto;
@@ -114,13 +113,12 @@
                 addMessageToHistory('user', transcript);
 
                 try {
-                    const res = await fetch('/api/chat', {
+                    const res = await fetch('/chat', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ message: transcript })
                     });
 
-                    // Check if response is JSON
                     const contentType = res.headers.get('content-type');
                     if (!contentType || !contentType.includes('application/json')) {
                         const text = await res.text();

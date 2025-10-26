@@ -16,23 +16,22 @@ const port = process.env.PORT || 3000;
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
 if (!GROQ_API_KEY) {
     console.error('Error: GROQ_API_KEY is not set in environment variables.');
-    throw new Error('Missing GROQ_API_KEY');
+    process.exit(1);
 }
 
 const groq = new Groq({ apiKey: GROQ_API_KEY });
 
 app.use(express.json());
+app.use(express.static(path.join(__dirname, 'public'))); // Serve static files from /public
 
-// Serve static files from /public (for non-API routes)
-app.use(express.static(path.join(__dirname, '../public')));
-
-// Health check endpoint (accessible at /api/health)
+// Health check endpoint
 app.get('/health', (req, res) => {
     res.json({ status: 'Server is running', port, apiKeySet: !!GROQ_API_KEY });
 });
 
-// Chat API endpoint (now at /api/chat to match Vercel auto-routing)
+// Chat API endpoint
 app.post('/chat', async (req, res) => {
+    console.log('Received /chat request:', req.body); // Debug log
     const { message } = req.body;
 
     if (!message) {
@@ -61,19 +60,21 @@ app.post('/chat', async (req, res) => {
     }
 });
 
-// Fallback for root path (serves index.html)
+// Fallback for root path
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, '../public/index.html'));
+    res.sendFile(path.join(__dirname, 'public/index.html'));
 });
 
-// Catch-all for other routes (return JSON 404 for API-like paths)
+// Catch-all for 404s (return JSON for API-like paths)
 app.use((req, res) => {
-    if (req.path.startsWith('/api/')) {
+    console.log('Unhandled request:', req.path); // Debug log
+    if (req.path.startsWith('/chat')) {
         res.status(404).json({ error: 'API endpoint not found' });
     } else {
-        res.status(404).sendFile(path.join(__dirname, '../public/index.html')); // SPA fallback
+        res.status(404).sendFile(path.join(__dirname, 'public/index.html')); // SPA fallback
     }
 });
 
-// Serverless export: Vercel invokes this as the handler for /api/*
-export default app;
+app.listen(port, () => {
+    console.log(`Server running at http://localhost:${port}`);
+});

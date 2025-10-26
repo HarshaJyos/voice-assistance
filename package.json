@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "type": "module",
   "description": "Voice assistant website using Groq AI",
-  "main": "api/index.js",
+  "main": "server.js",
   "scripts": {
-    "start": "node api/index.js",
+    "start": "node server.js",
     "build": "echo 'No build step needed'"
   },
   "dependencies": {
